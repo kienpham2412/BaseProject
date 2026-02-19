@@ -1,0 +1,14 @@
+{
+  "products": [
+    {
+      "id": "remove_ad",
+      "name": "Remove Ad",
+      "rewards": [
+        {
+          "id": 1,
+          "amount": 1
+        }
+      ]
+    }
+  ]
+}

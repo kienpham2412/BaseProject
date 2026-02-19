@@ -1,0 +1,5 @@
+{
+  "starThresholds": [50, 70, 100],
+  "coinGiftAmount": 100,
+  "coinGiftCountdown": 600
+}
