@@ -1,0 +1,10 @@
+{
+  "name": "com.kienpham.essentialmodules",
+  "version": "1.0.0",
+  "displayName": "Essential Modules",
+  "description": "Common utilities used across projects",
+  "unity": "6000.0",
+  "author": {
+    "name": "Kien Pham"
+  }
+}
