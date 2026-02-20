@@ -98,7 +98,7 @@ MonoBehaviour:
   m_MinSize: {x: 100, y: 100}
   m_MaxSize: {x: 8096, y: 16192}
   vertical: 1
-  controlID: 5969
+  controlID: 47
   draggingID: 0
 --- !u!114 &5
 MonoBehaviour:
@@ -178,7 +178,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 100}
   m_MaxSize: {x: 16192, y: 16192}
   vertical: 0
-  controlID: 15
+  controlID: 17
   draggingID: 0
 --- !u!114 &8
 MonoBehaviour:
@@ -275,7 +275,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 100}
   m_MaxSize: {x: 16192, y: 16192}
   vertical: 0
-  controlID: 142
+  controlID: 96
   draggingID: 0
 --- !u!114 &12
 MonoBehaviour:
@@ -301,7 +301,7 @@ MonoBehaviour:
   m_MinSize: {x: 100, y: 100}
   m_MaxSize: {x: 8096, y: 16192}
   vertical: 1
-  controlID: 143
+  controlID: 97
   draggingID: 0
 --- !u!114 &13
 MonoBehaviour:
@@ -1426,7 +1426,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Modules/Essentials/UI/Prefabs
+    - Assets/Modules/Essentials/ScriptUtilities
     m_Globs: []
     m_ProductIds: 
     m_AnyWithAssetOrigin: 0
@@ -1436,16 +1436,16 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 78
   m_LastFolders:
-  - Assets/Modules/Essentials/UI/Prefabs
+  - Assets/Modules/Essentials/ScriptUtilities
   m_LastFoldersGridSize: 78
   m_LastProjectPath: D:\KienPham\UnityProjects\BaseProject
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 77.20001}
-    m_SelectedIDs: 56930000
-    m_LastClickedID: 37718
-    m_ExpandedIDs: 00000000d4850000d6850000d8850000da850000dc850000
+    scrollPos: {x: 0, y: 45.200012}
+    m_SelectedIDs: 70860000
+    m_LastClickedID: 34416
+    m_ExpandedIDs: 000000008e8500009085000092850000948500009685000098850000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1474,7 +1474,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 00000000d4850000d6850000d8850000da850000dc850000
+    m_ExpandedIDs: 000000008e8500009085000092850000948500009685000098850000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1520,7 +1520,7 @@ MonoBehaviour:
       m_OriginalEventType: 11
       m_IsRenamingFilename: 1
       m_TrimLeadingAndTrailingWhitespace: 0
-      m_ClientGUIView: {fileID: 13}
+      m_ClientGUIView: {fileID: 14}
     m_CreateAssetUtility:
       m_EndAction: {fileID: 0}
       m_InstanceID: 0
@@ -1669,7 +1669,7 @@ MonoBehaviour:
       scrollPos: {x: 0, y: 0}
       m_SelectedIDs: 
       m_LastClickedID: 0
-      m_ExpandedIDs: 22b1feff68b2feff1eb4feffeeccfeffd6cefefff6cffeffc4d0feff2cd3feffe4d3feff1adcfeffc6dcfeffe4e0feff40e5feff64e8feff9aeafeffa8eefeffa2f1feff3cf5feffecf9feffbcfffeff1607ffff2007ffff2207ffffce0bffffd80bffffe20bffff0212ffff0873ffffcc74ffff3275ffff787affff767bffff347cffffec7cffff1cb0fffff4ffffff
+      m_ExpandedIDs: b6e5ffff26e9ffff38eaffff22fbfffff4ffffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -1862,17 +1862,17 @@ MonoBehaviour:
       width: 1567
       height: 1010
     m_Scale: {x: 0.65755206, y: 0.65755206}
-    m_Translation: {x: 783.5, y: 504.99997}
+    m_Translation: {x: 783.5, y: 505}
     m_MarginLeft: 0
     m_MarginRight: 0
     m_MarginTop: 0
     m_MarginBottom: 0
     m_LastShownAreaInsideMargins:
       serializedVersion: 2
-      x: -1489.4257
-      y: -959.9999
-      width: 2978.8513
-      height: 1919.9999
+      x: -1191.5406
+      y: -768
+      width: 2383.0813
+      height: 1536
     m_MinimalGUI: 1
   m_defaultScale: 0.65755206
   m_LastWindowPixelSize: {x: 1567, y: 1031}
