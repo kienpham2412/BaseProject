@@ -33,8 +33,8 @@ public class ConfigController : Singleton<ConfigController>
 
     private string GetRemoteConfig(string fileName)
     {
-        // return FirebaseServiceController.Instance.GetConfig(fileName);
-        return GetLocalConfig(fileName);
+        return FirebaseServiceController.Instance.GetConfig(fileName);
+        // return GetLocalConfig(fileName);
     }
 
     private string GetLocalConfig(string fileName, string resourceLocation = "Json/")

@@ -42,7 +42,7 @@ public class BootstrapLoader : Singleton<BootstrapLoader>
     {
         yield return new WaitUntil(() => DataController.Instance.DataLoaded);
         // yield return new WaitUntil(() => GoogleMobileAdInitializer.IsConsentInfomationUpdated);
-        // yield return new WaitUntil(() => FirebaseServiceController.Instance.IsFirebaseInited);
+        yield return new WaitUntil(() => FirebaseServiceController.Instance.IsFirebaseInited);
         var sceneLoad = SceneManager.LoadSceneAsync("Splash", LoadSceneMode.Additive);
 
         sceneLoad.allowSceneActivation = false;
