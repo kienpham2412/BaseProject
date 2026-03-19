@@ -61,7 +61,7 @@ public class AdController : Singleton<AdController>
         return true;
 #else
         if (removeAdCollectible.Amount > 0) return false;
-        if (levelData.lastestUnlockedLevel < adConfig.enableInterstitialFromLevel) return false;
+        if (levelData.level < adConfig.enableInterstitialFromLevel) return false;
         if (Time.time < interstitialTime) return false;
         return adsInterface.IsInterstitialAdsReady();
 #endif
