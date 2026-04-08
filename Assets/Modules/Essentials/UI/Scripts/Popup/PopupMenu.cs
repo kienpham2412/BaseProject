@@ -20,10 +20,11 @@ public enum PopupType
 public class PopupMenu : MonoBehaviour
 {
     [field: SerializeField] public PopupType Type { get; private set; }
-    [field: SerializeField] public MenuBase Menu { get; private set; }
+    [SerializeField] protected RectTransform wrapper;
     [SerializeField] protected Animator anim;
     [SerializeField] protected bool freezeTimeOnEnable = true;
     [SerializeField] protected bool unFreezeTimeOnDisable = true;
+    public MenuBase Menu { get; private set; }
     public UnityAction CloseAction { get; set; }
     private Tween tweenAnimClose, tweenHandleSystem;
     private static int popupHide = Animator.StringToHash("Close");
@@ -34,9 +35,15 @@ public class PopupMenu : MonoBehaviour
 
     private void Awake()
     {
-        Menu.Popup = this;
+        TryGetMenu();
         CloseDuration = GetDuration(closeClipName);
-        OpenDuration= GetDuration(openClipName);
+        OpenDuration = GetDuration(openClipName);
+    }
+
+    public void TryGetMenu()
+    {
+        if (Menu == null) Menu = wrapper.GetComponentInChildren<MenuBase>();
+        if (Menu != null) Menu.Popup = this;
     }
 
     protected virtual void OnEnable()
