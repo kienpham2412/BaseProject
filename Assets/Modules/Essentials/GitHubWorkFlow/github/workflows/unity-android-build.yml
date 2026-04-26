@@ -90,11 +90,11 @@ jobs:
           androidSymbolType: ${{ github.event.inputs.build_type == 'aab' && 'public' || 'none' }}
           
           # Cấu hình Keystore (Dành cho release)
-          androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_NAME }}
+          androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_NAME }}.keystore
           androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
-          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
-          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_NAME }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYSTORE_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYSTORE_NAME }}
 
       # Bước trung gian để kiểm tra file thực tế trước khi xử lý tiếp
       - name: List Files for Debugging
