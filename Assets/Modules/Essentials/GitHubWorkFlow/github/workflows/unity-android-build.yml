@@ -1,0 +1,127 @@
+name: Build & Deploy Unity Android 🚀
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version Name (Ví dụ: 1.0.0)'
+        required: true
+        default: '1.0.0'
+        type: string
+      bundle_version:
+        description: 'Bundle Version Code (Ví dụ: 10)'
+        required: true
+        default: '1'
+        type: string
+      build_type:
+        description: 'Loại bản build (APK hoặc AAB)'
+        required: true
+        default: 'apk'
+        type: choice
+        options:
+          - apk
+          - aab
+      release_track:
+        description: 'Kênh phát hành lên Google Play'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - internal    # Thử nghiệm nội bộ
+          - alpha       # Thử nghiệm khép kín
+          - beta        # Thử nghiệm công khai
+          - production  # Phát hành chính thức
+
+jobs:
+  build-android:
+    name: Build cho Android
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout source code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true # Bật nếu project của bạn dùng Git LFS cho các asset lớn
+
+      # 2. Giải phóng TỐI ĐA dung lượng ổ cứng
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true       # Bật thành true để xóa các tool không cần thiết
+          android: true          # BẬT THÀNH TRUE: Xóa Android SDK của máy chủ host để cứu ~10GB
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      # 3. Cache thư mục Library để các lần build sau nhanh hơn
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-Android-
+      
+      # THÊM BƯỚC NÀY: Tạo 10GB RAM ảo (Swap Space) để chống crash
+      - name: Add Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-sizeGB: 10
+
+      # 4. Build Project bằng GameCI
+      - name: Build Unity Project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: Android
+          androidExportType: ${{ inputs.build_type == 'aab' && 'androidAppBundle' || 'androidPackage ' }}
+          versioning: Custom
+          version: ${{ github.event.inputs.version_name }}
+          androidVersionCode: ${{ github.event.inputs.bundle_version }}
+          buildName: MyGame_${{ github.event.inputs.version_name }}
+          androidSymbolType: ${{ github.event.inputs.build_type == 'aab' && 'public' || 'none' }}
+          
+          # Cấu hình Keystore (Dành cho release)
+          androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_NAME }}
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+
+      # Bước trung gian để kiểm tra file thực tế trước khi xử lý tiếp
+      - name: List Files for Debugging
+        run: |
+          echo "Danh sách file trong thư mục build/Android:"
+          ls -R build/Android/
+
+      # 5. Upload file build thành công lên Artifact của GitHub Actions
+      - name: Upload Artifact
+        if: ${{ inputs.build_type == 'apk' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Android-${{ github.event.inputs.version_name }}-${{ github.event.inputs.build_type }}
+          path: build/Android
+      
+      # 6. TỰ ĐỘNG UPLOAD LÊN GOOGLE PLAY CONSOLE
+      - name: Upload to Google Play
+        if: ${{ inputs.release_track != 'none' && inputs.build_type == 'aab' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ secrets.ANDROID_PACKAGE_NAME }}
+          releaseFiles: build/Android/MyGame_${{ github.event.inputs.version_name }}.aab
+          debugSymbols: build/Android/MyGame_${{ github.event.inputs.version_name }}-${{ github.event.inputs.version_name }}-v${{ github.event.inputs.bundle_version }}-IL2CPP.symbols.zip
+          track: ${{ inputs.release_track }}
+          
+          # LOGIC ĐIỀU CHỈNH TRẠNG THÁI:
+          # Nếu kênh (track) là production -> để 'draft' (nháp) để bạn vào kiểm tra lần cuối.
+          # Nếu kênh là internal, alpha, hoặc beta -> để 'completed' (phát hành chính thức cho kênh đó).
+          status: ${{ inputs.release_track == 'production' && 'draft' || 'completed' }}
