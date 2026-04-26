@@ -1,7 +1,7 @@
 lệnh window powersheel để lấy keystore base 64:
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\MyUnityProject\user.keystore")) > "D:\MyUnityProject\keystore_base64.txt"
 
-lênh cmd để đẩy secret lên github (cần đăng nhập github cli trước khi thực hiện)
+lênh cmd để đẩy secret lên github (cần đăng nhập github cli sử dụng lênh 'gh auth login' trước khi thực hiện)
 # Đẩy Email và Password (Nhớ thay bằng thông tin thật của bạn)
 gh secret set UNITY_EMAIL -b"email-cua-ban@gmail.com" --repo Ten-Org/Game-Moi
 gh secret set UNITY_PASSWORD -b"mat-khau-unity" --repo Ten-Org/Game-Moi
