@@ -1,0 +1,361 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Events;
+using Unity.Services.LevelPlay;
+using Firebase.Analytics;
+
+public class LevelPlayAdController : MonoBehaviour, IAdsInterface
+{
+#if UNITY_ANDROID
+    string appKey = "268f136f5";
+#elif UNITY_IPHONE
+        string appKey = "8545d445";
+#else
+        string appKey = "unexpected_platform";
+#endif
+    private string rewardAdUnitId = "j3cgshvgyybtvmyq";
+    private string interstitialAdUnitId = "uxu8e3nllu8oooyp";
+    private string bannerAdUnitId = "b5tkaaz5192qtlhk";
+    private LevelPlayRewardedAd RewardedAd;
+    private LevelPlayInterstitialAd interstitialAd;
+    private LevelPlayBannerAd bannerAd;
+    private UnityAction rewardAdCloseAction;
+    private UnityAction userEarnRewardAction;
+    private UnityAction interstitialCloseAction;
+    private Collectible removeAdCollectible;
+    private bool canReceiveReward;
+    private int rewardAdRetryAttempt;
+    private int interstitialAdRetryAttempt;
+
+    private void Awake()
+    {
+        LevelPlay.OnInitSuccess += SdkInitializationCompletedEvent;
+        LevelPlay.OnInitFailed += SdkInitializationFailedEvent;
+
+        var c = DataController.Instance.GameData.Collectibles;
+        removeAdCollectible = c.GetCollectibleById(CollectibleType.RemoveAd);
+        // LevelPlay.SetMetaData("is_test_suite", "enable"); 
+    }
+
+    public void Start()
+    {
+        LevelPlay.Init(appKey);
+    }
+
+    private void SdkInitializationCompletedEvent(LevelPlayConfiguration configuration)
+    {
+        CreateRewardedAd();
+        CreateBannerAd();
+        // CreateInterstitialAd();
+        
+        LoadRewardedAd();
+
+        if (removeAdCollectible.Amount <= 0)
+        {
+            // LoadInterstitial();
+            LoadBanner();
+        }
+        
+        // LevelPlay.LaunchTestSuite();
+    }
+
+    private void SdkInitializationFailedEvent(LevelPlayInitError error)
+    {
+    }
+
+    #region RewardAd
+
+    void CreateRewardedAd()
+    {
+        // Create RewardedAd instance
+        RewardedAd = new LevelPlayRewardedAd(rewardAdUnitId);
+
+        // Subscribe RewardedAd events
+        RewardedAd.OnAdLoaded += RewardedOnAdLoadedEvent;
+        RewardedAd.OnAdLoadFailed += RewardedOnAdLoadFailedEvent;
+        RewardedAd.OnAdDisplayed += RewardedOnAdDisplayedEvent;
+        RewardedAd.OnAdDisplayFailed += RewardedOnAdDisplayFailedEvent;
+        RewardedAd.OnAdClicked += RewardedOnAdClickedEvent;
+        RewardedAd.OnAdClosed += RewardedOnAdClosedEvent;
+        RewardedAd.OnAdRewarded += RewardedOnAdRewardedEvent;
+        RewardedAd.OnAdInfoChanged += RewardedOnAdInfoChangedEvent;
+    }
+
+    private void LoadRewardedAd()
+    {
+        // Load or reload RewardedAd
+        RewardedAd.LoadAd();
+    }
+
+    void RewardedOnAdDisplayedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdDisplayedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void RewardedOnAdClosedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        StartCoroutine(ReceiveRewardRoutine());
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdClosedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    private IEnumerator ReceiveRewardRoutine()
+    {
+        yield return new WaitForSecondsRealtime(0.1f);
+
+        if (canReceiveReward)
+            userEarnRewardAction?.Invoke();
+        rewardAdCloseAction?.Invoke();
+
+        LoadRewardedAd();
+    }
+
+    void RewardedOnAdLoadedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        rewardAdRetryAttempt = 0;
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdLoadedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void RewardedOnAdLoadFailedEvent(LevelPlayAdError levelPlayAdError)
+    {
+        rewardAdRetryAttempt++;
+        double retryDelay = Math.Pow(2, Math.Min(6, rewardAdRetryAttempt));
+
+        Invoke("LoadRewardedAd", (float)retryDelay);
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdLoadFailedEvent With AdInfo " + levelPlayAdError);
+    }
+
+    void RewardedOnAdDisplayFailedEvent(LevelPlayAdInfo levelPlayAdInfo, LevelPlayAdError levelPlayAdError)
+    {
+        LoadRewardedAd();
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdDisplayFailedEvent With Error" + levelPlayAdError +
+                        "And AdInfo " + levelPlayAdInfo);
+    }
+
+    void RewardedOnAdRewardedEvent(LevelPlayAdInfo levelPlayAdInfo, LevelPlayReward levelPlayReward)
+    {
+        canReceiveReward = true;
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdRewardedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void RewardedOnAdClickedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdClickedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    private void RewardedOnAdInfoChangedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got RewardedOnAdInfoChangedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    public bool IsVideoRewardAdsReady()
+    {
+        return RewardedAd.IsAdReady();
+    }
+
+    public void ShowVideoAds(UnityAction onAdClosed = null)
+    {
+        userEarnRewardAction = onAdClosed;
+        RewardedAd.ShowAd();
+    }
+
+    #endregion
+
+    #region Banner
+
+    void CreateBannerAd()
+    {
+        var adSize = LevelPlayAdSize.CreateAdaptiveAdSize();
+        
+        Debug.Log($"adSize = {(adSize == null ? "NULL" : adSize.ToString())}");
+        
+        // Create ad configuration - optional
+        var adConfig = new LevelPlayBannerAd.Config.Builder()
+            .SetSize(adSize)
+            // .SetPlacementName("placementName")
+            .SetPosition(LevelPlayBannerPosition.BottomCenter)
+            .SetDisplayOnLoad(true)
+            .SetRespectSafeArea(true)
+            .Build();
+
+        // Create banner instance
+        bannerAd = new LevelPlayBannerAd(bannerAdUnitId, adConfig);
+        // Subscribe BannerAd events
+        bannerAd.OnAdLoaded += BannerOnAdLoadedEvent;
+        bannerAd.OnAdLoadFailed += BannerOnAdLoadFailedEvent;
+        bannerAd.OnAdDisplayed += BannerOnAdDisplayedEvent;
+        bannerAd.OnAdDisplayFailed += BannerOnAdDisplayFailedEvent;
+        bannerAd.OnAdClicked += BannerOnAdClickedEvent;
+        bannerAd.OnAdCollapsed += BannerOnAdCollapsedEvent;
+        bannerAd.OnAdLeftApplication += BannerOnAdLeftApplicationEvent;
+        bannerAd.OnAdExpanded += BannerOnAdExpandedEvent;
+    }
+
+    void BannerOnAdLoadedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdLoadedEvent With AdInfo " + levelPlayAdInfo);
+        ShowBannerAd();
+    }
+
+    void BannerOnAdLoadFailedEvent(LevelPlayAdError levelPlayAdError)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdLoadFailedEvent With Error " + levelPlayAdError);
+    }
+
+    private void BannerOnAdDisplayFailedEvent(LevelPlayAdInfo levelPlayAdInfo, LevelPlayAdError levelPlayAdError)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdDisplayFailedEvent With Error" + levelPlayAdError +
+                        "And AdInfo " + levelPlayAdInfo);
+    }
+
+    void BannerOnAdClickedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdClickedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void BannerOnAdDisplayedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdDisplayedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    private void BannerOnAdCollapsedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdCollapsedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void BannerOnAdExpandedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdExpandedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void BannerOnAdLeftApplicationEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got BannerOnAdLeftApplicationEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    private void LoadBanner()
+    {
+        bannerAd.LoadAd();
+    }
+
+    public void ShowBannerAd()
+    {
+        //Show the banner ad, call this method only if you turned off the auto show when you created this banner instance.
+        bannerAd.ShowAd();
+    }
+
+    public void HideBannerAd()
+    {
+        //Hide banner
+        bannerAd.HideAd();
+    }
+
+    public void DestroyBanner()
+    {
+        bannerAd.DestroyAd();
+    }
+
+    #endregion
+
+    #region Interstitial
+
+    void CreateInterstitialAd()
+    {
+        //Create InterstitialAd instance
+        interstitialAd = new LevelPlayInterstitialAd(interstitialAdUnitId);
+
+        //Subscribe InterstitialAd events
+        interstitialAd.OnAdLoaded += InterstitialOnAdLoadedEvent;
+        interstitialAd.OnAdLoadFailed += InterstitialOnAdLoadFailedEvent;
+        interstitialAd.OnAdDisplayed += InterstitialOnAdDisplayedEvent;
+        interstitialAd.OnAdDisplayFailed += InterstitialOnAdDisplayFailedEvent;
+        interstitialAd.OnAdClicked += InterstitialOnAdClickedEvent;
+        interstitialAd.OnAdClosed += InterstitialOnAdClosedEvent;
+        interstitialAd.OnAdInfoChanged += InterstitialOnAdInfoChangedEvent;
+    }
+
+    void InterstitialOnAdLoadedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        interstitialAdRetryAttempt = 0;
+        DebugLogger.Log("LevelPlay: I got InterstitialOnAdLoadedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void InterstitialOnAdLoadFailedEvent(LevelPlayAdError levelPlayAdError)
+    {
+        interstitialAdRetryAttempt++;
+        double retryDelay = Math.Pow(2, Math.Min(6, interstitialAdRetryAttempt));
+
+        Invoke("LoadInterstitial", (float)retryDelay);
+        DebugLogger.Log("LevelPlay: I got InterstitialOnAdLoadFailedEvent With Error " + levelPlayAdError);
+    }
+
+    void InterstitialOnAdDisplayedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got InterstitialOnAdDisplayedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void InterstitialOnAdClickedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got InterstitialOnAdClickedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void InterstitialOnAdInfoChangedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        DebugLogger.Log("LevelPlay: I got InterstitialOnAdInfoChangedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    void InterstitialOnAdDisplayFailedEvent(LevelPlayAdInfo levelPlayAdInfo, LevelPlayAdError levelPlayAdError)
+    {
+        LoadInterstitial();
+        DebugLogger.Log("LevelPlay: I got InterstitialOnAdDisplayFailedEvent With Error " + levelPlayAdError +
+                        " And AdInfo " + levelPlayAdInfo);
+    }
+
+    void InterstitialOnAdClosedEvent(LevelPlayAdInfo levelPlayAdInfo)
+    {
+        StartCoroutine(InterstitialCloseRoutine());
+        DebugLogger.Log("LevelPlay: I got InterstitialOnAdClosedEvent With AdInfo " + levelPlayAdInfo);
+    }
+
+    private IEnumerator InterstitialCloseRoutine()
+    {
+        yield return new WaitForSecondsRealtime(0.1f);
+        interstitialCloseAction?.Invoke();
+
+        LoadInterstitial();
+    }
+
+    public bool IsInterstitialAdsReady()
+    {
+        return interstitialAd.IsAdReady();
+    }
+
+    public void ShowInterstitial(UnityAction onAdClosed)
+    {
+        interstitialCloseAction = onAdClosed;
+        interstitialAd.ShowAd();
+    }
+
+    private void LoadInterstitial()
+    {
+        interstitialAd.LoadAd();
+    }
+
+    #endregion
+
+    void ImpressionDataReadyEvent(LevelPlayImpressionData impressionData)
+    {
+        var revenue = impressionData.Revenue ?? 0.0;
+
+        FirebaseAnalytics.LogEvent(
+            FirebaseAnalytics.EventAdImpression,
+            new Parameter(FirebaseAnalytics.ParameterAdPlatform, "LevelPlay"),
+            new Parameter(FirebaseAnalytics.ParameterAdSource, impressionData.AdNetwork),
+            new Parameter(FirebaseAnalytics.ParameterAdUnitName, impressionData.MediationAdUnitId),
+            new Parameter(FirebaseAnalytics.ParameterAdFormat, impressionData.AdFormat),
+            new Parameter(FirebaseAnalytics.ParameterCurrency, "USD"),
+            new Parameter(FirebaseAnalytics.ParameterValue, revenue)
+        );
+    }
+}

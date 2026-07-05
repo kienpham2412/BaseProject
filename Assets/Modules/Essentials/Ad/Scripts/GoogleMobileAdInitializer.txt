@@ -1,0 +1,74 @@
+using System.Collections.Generic;
+using UnityEngine;
+using GoogleMobileAds.Api;
+using GoogleMobileAds.Ump.Api;
+
+public class GoogleMobileAdInitializer : MonoBehaviour
+{
+    public static bool IsInitialized { get; private set; }
+    public static bool IsConsentInfomationUpdated { get; private set; }
+
+    void Start()
+    {
+        var request = CreateConsentRequestParameters();
+        // Check the current consent information status.
+        ConsentInformation.Update(request, OnConsentInfoUpdated);
+    }
+
+    private ConsentRequestParameters CreateConsentRequestParameters()
+    {
+#if UNITY_EDITOR
+        return new ConsentRequestParameters();
+#else
+        // return new ConsentRequestParameters();
+
+        var consentDebugSetting = new ConsentDebugSettings
+        {
+            // For debugging consent settings by geography.
+            DebugGeography = DebugGeography.EEA,
+            TestDeviceHashedIds = new List<string>
+            {
+                "3324FAF68FE741CF1C902BC09D16B4BA"
+            }
+        };
+        
+        return new ConsentRequestParameters
+        {
+            ConsentDebugSettings = consentDebugSetting
+        };
+#endif
+    }
+
+    void OnConsentInfoUpdated(FormError consentError)
+    {
+        // If the error is null, the consent information state was updated.
+        if (consentError != null)
+        {
+            // Handle the error.
+            LogFormError(consentError, "consent error");
+            IsConsentInfomationUpdated = true;
+            return;
+        }
+
+        // If the error is null, the consent information state was updated.
+        // You are now ready to check if a form is available.
+        ConsentForm.LoadAndShowConsentFormIfRequired((FormError formError) =>
+        {
+            if (formError != null)
+            {
+                LogFormError(formError, "form error");
+                IsConsentInfomationUpdated = true;
+                return;
+            }
+
+            // Consent has been gathered.
+            if (ConsentInformation.CanRequestAds())
+                IsConsentInfomationUpdated = true;
+        });
+    }
+
+    private void LogFormError(FormError formError, string otherInfo = "")
+    {
+        Debug.Log($"Ump Error: {formError.ErrorCode} - {formError.Message}.\nOther info: {otherInfo}");
+    }
+}

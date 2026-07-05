@@ -37,7 +37,7 @@ public class BootstrapLoader : Singleton<BootstrapLoader>
     private IEnumerator LoadMainSceneRoutine()
     {
         yield return null;
-        yield return LoadSceneRoutine("Home", 1f, 0.75f);
+        yield return LoadSceneRoutine("Gameplay", 1f, 0.75f);
     }
     
     private IEnumerator LoadSceneRoutine(string sceneName, float loadingProgress, float duration)

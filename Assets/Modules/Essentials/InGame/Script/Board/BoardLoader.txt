@@ -1,0 +1,125 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using Pixelplacement;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceLocations;
+using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
+
+namespace PinAssociation
+{
+    public class BoardLoader : Singleton<BoardLoader>
+    {
+        public GameObject ActiveBoard => loadedBoard;
+        private GameObject loadedBoard;
+        private GameObject cachedBoard;
+        private LevelData levelData;
+        private AsyncOperationHandle<GameObject> loadingHandle;
+        public bool MainBoardLoadComplete { get; private set; } = false;
+        public bool BGLoadComplete { get; private set; } = false;
+        public int BoardIdToLoad { get; private set; }
+
+        /// => modify start
+        private int maxAvailableBoardIdAddressable = 30;
+        /// => modify end
+        public int MaxAvailableBoardIdAddressable => maxAvailableBoardIdAddressable;
+
+        private void Awake()
+        {
+            levelData = DataController.Instance.GameData.LevelData;
+#if UNITY_EDITOR
+            maxAvailableBoardIdAddressable = Essential.Utils.CountLevelPrefabs();
+#endif
+
+            LoadBoard();
+        }
+
+        /// <summary>
+        /// Load a board prefab
+        /// </summary>
+        public void LoadBoard()
+        {
+            BoardIdToLoad = levelData.boardId <= maxAvailableBoardIdAddressable
+                ? levelData.boardId
+                : GetRandomBoardId();
+
+            string levelAddressable = BoardIdToLoad.ToString();
+            Debug.Log($"Level addressable {levelAddressable}, max level addressable {maxAvailableBoardIdAddressable}");
+
+            MainBoardLoadComplete = false;
+            loadingHandle = Addressables.LoadAssetAsync<GameObject>(levelAddressable);
+            loadingHandle.Completed += OnLoadComplete;
+        }
+
+        public bool AddressableResourceExists(object key)
+        {
+            foreach (var l in Addressables.ResourceLocators)
+            {
+                IList<IResourceLocation> locs;
+                if (l.Locate(key, typeof(GameObject), out locs))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Trigger logic after the board is loaded
+        /// </summary>
+        /// <param name="handle"></param>
+        private void OnLoadComplete(AsyncOperationHandle<GameObject> handle)
+        {
+            if (handle.Status == AsyncOperationStatus.Succeeded)
+            {
+                MainBoardLoadComplete = true;
+                loadedBoard = handle.Result;
+                Debug.Log($"Load {ActiveBoard.name} successfully");
+                loadingHandle.Completed -= OnLoadComplete;
+            }
+        }
+
+        public void CacheBoard()
+        {
+            cachedBoard = loadedBoard;
+        }
+
+        /// <summary>
+        /// Release loaded board instance
+        /// </summary>
+        public void ReleaseCachedBoard()
+        {
+            if (cachedBoard != null)
+                Addressables.Release(cachedBoard);
+        }
+
+        public YieldInstruction WaitForLoadingComplete()
+        {
+            return (YieldInstruction)StartCoroutine(WaitForLoadBoardRoutine());
+        }
+
+        private IEnumerator WaitForLoadBoardRoutine()
+        {
+            while (!MainBoardLoadComplete)
+            {
+                yield return null;
+            }
+        }
+
+        public void UpdateBoardId()
+        {
+            var nextBoardId = levelData.boardId + 1;
+            levelData.boardId = Mathf.Clamp(nextBoardId, 1, maxAvailableBoardIdAddressable + 1);
+        }
+
+        private int GetRandomBoardId()
+        {
+            var half = Mathf.FloorToInt(maxAvailableBoardIdAddressable * 0.5f);
+            return BoardIdToLoad <= half
+                ? Random.Range(half + 1, maxAvailableBoardIdAddressable + 1)
+                : Random.Range(1, half + 1);
+        }
+    }
+}
